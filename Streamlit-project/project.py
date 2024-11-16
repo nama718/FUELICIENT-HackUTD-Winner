@@ -1,2 +1,2 @@
 import streamlit as st
-st.title("Toyota Fuelicient")
+st.title("TOYOTA FUELICIENT")
