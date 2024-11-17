@@ -177,6 +177,8 @@ def main():
         </style>
     """, unsafe_allow_html=True)
     
+    default_years = []
+    default_columns = []
     # Prepare defaults, as saved
     db = st.session_state.firebase.database()
     users = db.child("users").get()
