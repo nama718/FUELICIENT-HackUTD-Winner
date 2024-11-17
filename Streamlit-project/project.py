@@ -3,6 +3,7 @@
 
 import streamlit as st
 import pyrebase
+from main import *
 
 def prepare_authentication():
     firebaseConfig = {
@@ -15,8 +16,8 @@ def prepare_authentication():
       'measurementId': "G-BTKNF9CYJ7",
       "databaseURL": "https://fuelicient.firebaseapp.com/"
     }
-    firebase = pyrebase.initialize_app(firebaseConfig)
-    return firebase.auth()
+    st.session_state.firebase = pyrebase.initialize_app(firebaseConfig)
+    return st.session_state.firebase.auth()
 
 def authenticate(auth, email, password):
     print(f"Beginning authentication with email = {email} and password = {password}")
@@ -45,6 +46,7 @@ def authenticate(auth, email, password):
             st.write("Password invalid!")
             return False
 
+# This will allow for the user to either log in or create an account, in the same interface
 def login():
     print("About to log in")
     auth = prepare_authentication()
@@ -69,11 +71,14 @@ def post_login():
             st.session_state.pop('email', None)
             st.session_state.pop('auth', None)
             st.rerun()
+    main() # Call the visualization code from the other file
     
-    
+#    if st.button("Add new note..."):
+#        add_new_note()
     
 #Main code begins here
 st.set_page_config(page_title="FUELICIENT", page_icon="FUELICIENT logo.jpg", layout="centered", initial_sidebar_state="auto", menu_items=None)
+load_dotenv()
 st.title("FUELICIENT")
 st.markdown("""---""")
 
