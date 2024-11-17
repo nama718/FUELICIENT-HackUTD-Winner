@@ -176,7 +176,9 @@ def main():
             }
         </style>
     """, unsafe_allow_html=True)
-
+    
+    db = st.session_state.firebase.database()
+    
     # User input for year
     years = st.multiselect("Select the years for the data:", [2025, 2024, 2023, 2022, 2021])
     cids = {
