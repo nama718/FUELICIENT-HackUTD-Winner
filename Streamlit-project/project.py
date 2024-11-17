@@ -1,9 +1,3 @@
-# Thanks to https://stackoverflow.com/a/73293418/23017142
-# import sys
-# if sys.version_info.major == 3 and sys.version_info.minor >= 10:
-#    import collections
-#    setattr(collections, "MutableMapping", collections.abc.MutableMapping)
-
 import streamlit as st
 import pyrebase
 
@@ -23,31 +17,41 @@ def prepare_authentication():
 
 def authenticate(auth, email, password):
     try:
-        st.session_state.person = auth.create_user_with_email_and_password(email, password)
+        user = auth.create_user_with_email_and_password(email, password)
+        st.session_state['signin'] = user
+        st.session_state.email = user['email']
+        return True
     except:
         try:
-            st.session_state.signin = auth.sign_in_with_email_and_password(email, password)
+            user = auth.sign_in_with_email_and_password(email, password)
+            st.session_state['signin'] = user
+            st.session_state.email = user['email']
+            return True
         except:
+            st.session_state.pop('signin', None)
+            st.session_state.pop('email', None)
             st.write("Password invalid!")
+            return False
 
-def login(login_objects): #elsewhere, login_objects is a session_state object. Here, the name is shorter.
+def login():
     auth = prepare_authentication()
-    login_objects.markdown("## Log in/create account:")
-    email = login_objects.text_input("Email", key = "email")
-    password = login_objects.text_input("Password", type="password", key = "password") # try "example"
+    st.markdown("## Log in/create account:")
+    email = st.text_input("Email", key = "email")
+    password = st.text_input("Password", type="password", key = "password") # try "example"
     if st.button("Create account/log in"):
-        authenticate(auth, email, password)
+        if "signin" not in st.session_state:
+            if authenticate(auth, email, password):
+                st.experimental_rerun()
 
-def post_login(login_objects):
-    login_objects.empty() # remove login screen
+def post_login():
+    print("Post login")
     st.write(f"Signed in as {st.session_state.signin['email']}") # By this point, the user is guaranteed to be signed in.
     
 #Main code begins here
 st.title("FUELICIENT")
 
-st.session_state.login_objects = st.empty() # used for creating things which can be deleted later
-if not "signin" in st.session_state:
-    login(st.session_state.login_objects)
+if "signin" not in st.session_state:
+    login()
 
 if "signin" in st.session_state:
-    post_login(st.session_state.login_objects)
+    post_login()
