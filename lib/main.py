@@ -177,9 +177,17 @@ def main():
         </style>
     """, unsafe_allow_html=True)
     
+    # Prepare defaults, as saved
     db = st.session_state.firebase.database()
-    default_years = list(db.child(st.session_state.email).child("years").get().val().keys())
-    default_columns = list(db.child(st.session_state.email).child("selected_columns").get().val().keys())
+    users = db.child("users").get()
+    email = st.session_state.email
+    if email not in users.each():
+        db.child("users").add(email)
+        db.child("users").child(email).add("years")
+        db.child("users").child(email).add("selected_columns")
+    
+    default_years = list(db.child("users").child(email).get("years").get().val().keys())
+    default_columns = list(db.child("users").child(email).get("selected_columns").get().val().keys())
     
     # User input for year
     years = st.multiselect("Select the years for the data:", [2025, 2024, 2023, 2022, 2021], default=default_years)
@@ -193,7 +201,7 @@ def main():
 
     # Fetch and visualize data
     cids_chosen = []
-    db.child(st.session_state.email).child("years").set(years)
+    db.child("users").child(email).child("years").set(years)
     for year in years:
         cids_chosen.append(cids.get(str(year)))
     if len(cids_chosen) > 0:
@@ -218,7 +226,7 @@ def main():
                 options=available_columns,
                 default=default_columns
             )
-            db.child(st.session_state.email).child("selected_columns").set(selected_columns)
+            db.child("users").child(email).child("selected_columns").set(selected_columns)
             # Visualize the selected columns
             if selected_columns:
                 visualize_selected_columns(df, selected_columns)
