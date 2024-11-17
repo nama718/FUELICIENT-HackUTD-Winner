@@ -11,6 +11,8 @@ github.io domain: [https://isaacphilo.github.io/HackUTD2024/](https://isaacphilo
 Explore. Organize. Remember.
 Fuel efficiency data can be unintuitive, and insights hard to remember. FUELICIENT does away with both of these, giving a clean, persistent, interactive interface.
 
+---
+
 Open-source libraries used:
 altair
 attrs
