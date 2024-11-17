@@ -71,7 +71,9 @@ def get_data_for_year(cid):
 
 # Function to visualize the selected columns
 def visualize_selected_columns(df, selected_columns):
-    st.subheader(f"Visualizing Selected Columns: {', '.join(selected_columns)}")
+    st.markdown("---")
+    st.markdown(f"## Visualizing Selected Columns:")
+    st.write(f"{', '.join(selected_columns)}")
 
     # Ensure the columns are available in the dataframe
     if all(col in df.columns for col in selected_columns):
@@ -83,7 +85,7 @@ def visualize_selected_columns(df, selected_columns):
         # If only two columns are selected, generate a scatter plot
         if len(selected_columns) == 2:
             col1, col2 = selected_columns
-            st.write(f"### Scatter Plot of {col1} vs {col2}")
+            st.write(f"#### Scatter Plot of {col1} vs {col2}")
             fig, ax = plt.subplots(figsize=(10, 6))
             sns.scatterplot(x=df[col1], y=df[col2], ax=ax)
             ax.set_title(f"{col1} vs {col2}")
@@ -93,7 +95,7 @@ def visualize_selected_columns(df, selected_columns):
 
         # If more than two columns are selected, create a bar chart for comparison
         else:
-            st.write(f"### Bar Chart of {', '.join(selected_columns)}")
+            st.write(f"#### Bar Chart of {', '.join(selected_columns)}")
             df_selected = df[selected_columns].mean().sort_values(ascending=False)
             fig, ax = plt.subplots(figsize=(10, 6))
             df_selected.plot(kind='bar', ax=ax, color='orange')
@@ -106,9 +108,9 @@ def visualize_selected_columns(df, selected_columns):
         st.markdown("""
         <div class="summary">
             <h4>Selected Column Comparison</h4>
-            <p>This visualization allows you to compare the selected columns. 
-            Use the scatter plot to visualize the relationship between two columns and the bar chart to see how different columns perform on average.</p>
-            <p>Feel free to experiment with different column selections to uncover interesting insights about Toyota vehicles.</p>
+            <p>This visualization allows you to compare the selected characteristics. 
+            Use a scatter plot to visualize the relationship between two characteristics, or a bar chart to see how different characteristics perform on average.</p>
+            <p>Experiment with different selections of characteristics. You might uncover something interesting about Toyota vehicles!</p>
         </div>
         """, unsafe_allow_html=True)
     else:
@@ -176,7 +178,7 @@ def main():
     """, unsafe_allow_html=True)
 
     # User input for year
-    year = st.selectbox("Select the year for the data:", [2025, 2024, 2023, 2022, 2021])
+    years = st.multiselect("Select the years for the data:", [2025, 2024, 2023, 2022, 2021])
     cids = {
         "2025": os.getenv("FE_2025"),
         "2024": os.getenv("FE_2024"),
@@ -186,16 +188,30 @@ def main():
     }
 
     # Fetch and visualize data
-    cid = cids.get(str(year))
-    if cid:
-        df = get_data_for_year(cid)
-        if df is not None:
+    cids_chosen = []
+    for year in years:
+        cids_chosen.append(cids.get(str(year)))
+    if len(cids_chosen) > 0:
+        dataframes = []
+        for content_id in cids_chosen:
+            if "cid_map" not in st.session_state:
+                st.session_state.cid_map = {"":""}
+            if content_id not in st.session_state.cid_map:
+                print(f"Requesting data for cid {content_id}")
+                st.session_state.cid_map[content_id] = get_data_for_year(content_id)
+            current_df = st.session_state.cid_map[content_id]
+            if current_df is not None:
+                dataframes.append(current_df)
+            else:
+                st.error("Year data request failed")
+        if len(dataframes) > 0:
+            df = pd.concat(dataframes)
             # Allow users to select columns
             available_columns = df.columns.tolist()
             selected_columns = st.multiselect(
                 "Select the columns you want to compare:",
                 options=available_columns,
-                default=['Comb FE (Guide) - Conventional Fuel', 'Eng Displ']
+                default=['Model Year', 'Comb FE (Guide) - Conventional Fuel']
             )
 
             # Visualize the selected columns
@@ -206,7 +222,8 @@ def main():
         else:
             st.error("No data available for the selected year.")
     else:
-        st.error("Data for the selected year is not available.")
+        if len(cids_chosen) > 0:
+            st.error("Data for the selected year is not available.")
 
 # Run the Streamlit app
 if __name__ == "__main__":

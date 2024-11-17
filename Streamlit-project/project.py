@@ -79,7 +79,7 @@ def post_login():
 #Main code begins here
 st.set_page_config(page_title="FUELICIENT", page_icon="FUELICIENT logo.jpg", layout="centered", initial_sidebar_state="auto", menu_items=None)
 load_dotenv()
-st.title("FUELICIENT")
+st.markdown("<h1 style='text-align: center; color: black;'>FUELICIENT</h1>", unsafe_allow_html=True)
 st.markdown("""---""")
 
 if "signin" not in st.session_state:
