@@ -184,7 +184,7 @@ def main():
     users = db.child("users")
     email = st.session_state.email
     sanitized_email = email.replace(".", "_").replace("@", "_")
-    print(users)
+    # print(users)
     try:
         users.get.each()
     except:
