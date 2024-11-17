@@ -178,9 +178,11 @@ def main():
     """, unsafe_allow_html=True)
     
     db = st.session_state.firebase.database()
+    default_years = list(db.child(st.session_state.email).child("years").get().val().keys())
+    default_columns = list(db.child(st.session_state.email).child("selected_columns").get().val().keys())
     
     # User input for year
-    years = st.multiselect("Select the years for the data:", [2025, 2024, 2023, 2022, 2021])
+    years = st.multiselect("Select the years for the data:", [2025, 2024, 2023, 2022, 2021], default=default_years)
     cids = {
         "2025": os.getenv("FE_2025"),
         "2024": os.getenv("FE_2024"),
@@ -191,6 +193,7 @@ def main():
 
     # Fetch and visualize data
     cids_chosen = []
+    db.child(st.session_state.email).child("years").set(years)
     for year in years:
         cids_chosen.append(cids.get(str(year)))
     if len(cids_chosen) > 0:
@@ -213,9 +216,9 @@ def main():
             selected_columns = st.multiselect(
                 "Select the columns you want to compare:",
                 options=available_columns,
-                default=['Model Year', 'Comb FE (Guide) - Conventional Fuel']
+                default=default_columns
             )
-
+            db.child(st.session_state.email).child("selected_columns").set(selected_columns)
             # Visualize the selected columns
             if selected_columns:
                 visualize_selected_columns(df, selected_columns)
