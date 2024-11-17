@@ -16,32 +16,41 @@ def prepare_authentication():
     return firebase.auth()
 
 def authenticate(auth, email, password):
+    print(f"Beginning authentication with email = {email} and password = {password}")
     try:
         user = auth.create_user_with_email_and_password(email, password)
         st.session_state['signin'] = user
         st.session_state.email = user['email']
+        print("User created")
         return True
-    except:
+    except Exception as e1:
         try:
             user = auth.sign_in_with_email_and_password(email, password)
             st.session_state['signin'] = user
             st.session_state.email = user['email']
+            print("User logged in")
+            print(e1)
             return True
-        except:
+        except Exception as e2:
             st.session_state.pop('signin', None)
             st.session_state.pop('email', None)
+            print("Login failed")
+            print(e2)
             st.write("Password invalid!")
             return False
 
 def login():
+    print("About to log in")
     auth = prepare_authentication()
     st.markdown("## Log in/create account:")
-    email = st.text_input("Email", key = "email")
-    password = st.text_input("Password", type="password", key = "password") # try "example"
+    email = st.text_input("Email")
+    password = st.text_input("Password", type="password") # try "example"
     if st.button("Create account/log in"):
         if "signin" not in st.session_state:
+            print("About to authenticate")
             if authenticate(auth, email, password):
-                st.experimental_rerun()
+                print("About to rerun")
+                st.rerun()
 
 def post_login():
     print("Post login")
