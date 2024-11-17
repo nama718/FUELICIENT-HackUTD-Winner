@@ -1,3 +1,6 @@
+# Project FUELICIENT
+# Authors: Isaac Philo, Aman Balam, Adrian Alvarez, Sriram Lakamsani
+
 import streamlit as st
 import pyrebase
 
@@ -21,6 +24,7 @@ def authenticate(auth, email, password):
         user = auth.create_user_with_email_and_password(email, password)
         st.session_state['signin'] = user
         st.session_state.email = user['email']
+        st.session_state.auth = auth
         print("User created")
         return True
     except Exception as e1:
@@ -28,12 +32,14 @@ def authenticate(auth, email, password):
             user = auth.sign_in_with_email_and_password(email, password)
             st.session_state['signin'] = user
             st.session_state.email = user['email']
+            st.session_state.auth = auth
             print("User logged in")
             print(e1)
             return True
         except Exception as e2:
             st.session_state.pop('signin', None)
             st.session_state.pop('email', None)
+            st.session_state.pop('auth', None)
             print("Login failed")
             print(e2)
             st.write("Password invalid!")
@@ -52,11 +58,22 @@ def login():
                 print("About to rerun")
                 st.rerun()
 
+# Everything that should happen after the login has occurred
 def post_login():
     print("Post login")
-    st.write(f"Signed in as {st.session_state.signin['email']}") # By this point, the user is guaranteed to be signed in.
+    with st.sidebar:
+        st.write(f"Signed in as {st.session_state.signin['email']}") # By this point, the user is guaranteed to be signed in.
+        if st.button("Logout"):
+            st.session_state.auth.current_user = None
+            st.session_state.pop('signin', None)
+            st.session_state.pop('email', None)
+            st.session_state.pop('auth', None)
+            st.rerun()
+    
+    
     
 #Main code begins here
+st.set_page_config(page_title="FUELICIENT", page_icon="FUELICIENT logo.jpg", layout="centered", initial_sidebar_state="auto", menu_items=None)
 st.title("FUELICIENT")
 
 if "signin" not in st.session_state:
