@@ -181,18 +181,23 @@ def main():
     default_columns = []
     # Prepare defaults, as saved
     db = st.session_state.firebase.database()
-    users = db.child("users").get()
+    users = db.child("users")
     email = st.session_state.email
-    if email not in users.each():
-        db.ref("users").add(email)
-        db.ref(f"users/{email}").add("years")
-        db.ref(f"users/{email}").add("selected_columns")
+    sanitized_email = email.replace(".", "_").replace("@", "_")
+    print(users)
+    try:
+        users.get.each()
+    except:
+        db.child("users").set({f"{sanitized_email}": {"years": None, "selected_columns": None}})
     
-    default_years = list(db.ref(f"users/{email}/years").get().val().keys())
-    default_columns = list(db.ref(f"users/{email}").get("selected_columns").get().val().keys())
-    
+    response1 = db.child("users").child(sanitized_email).child("years").get().val()
+    if response1:
+        st.session_state.default_years = response1
+    response2 = db.child("users").child(sanitized_email).child("selected_columns").get().val()
+    if response2:
+        st.session_state.default_columns = response2
     # User input for year
-    years = st.multiselect("Select the years for the data:", [2025, 2024, 2023, 2022, 2021], default=default_years)
+    years = st.multiselect("Select the years for the data:", [2025, 2024, 2023, 2022, 2021], default=st.session_state.default_years)
     cids = {
         "2025": os.getenv("FE_2025"),
         "2024": os.getenv("FE_2024"),
@@ -203,7 +208,7 @@ def main():
 
     # Fetch and visualize data
     cids_chosen = []
-    db.child("users").child(email).child("years").set(years)
+    db.child("users").child(sanitized_email).update({"years":years})
     for year in years:
         cids_chosen.append(cids.get(str(year)))
     if len(cids_chosen) > 0:
@@ -226,9 +231,9 @@ def main():
             selected_columns = st.multiselect(
                 "Select the columns you want to compare:",
                 options=available_columns,
-                default=default_columns
+                default=st.session_state.default_columns
             )
-            db.child("users").child(email).child("selected_columns").set(selected_columns)
+            db.child("users").child(sanitized_email).update({"selected_columns":selected_columns})
             # Visualize the selected columns
             if selected_columns:
                 visualize_selected_columns(df, selected_columns)

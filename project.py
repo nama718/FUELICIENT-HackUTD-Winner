@@ -14,7 +14,7 @@ def prepare_authentication():
       'messagingSenderId': "322091244296",
       'appId': "1:322091244296:web:b1e2997defb4364f852abd",
       'measurementId': "G-BTKNF9CYJ7",
-      "databaseURL": "https://console.firebase.google.com/project/fuelicient/database/fuelicient-default-rtdb/data/~2F"
+      "databaseURL": "https://fuelicient-default-rtdb.firebaseio.com/"
       
     }
     st.session_state.firebase = pyrebase.initialize_app(firebaseConfig)
