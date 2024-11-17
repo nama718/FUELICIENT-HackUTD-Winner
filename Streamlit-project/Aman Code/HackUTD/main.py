@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from io import BytesIO
 from dotenv import load_dotenv
-from methods import process_fuel_efficient_car  # Assuming you have this function for predictions
 
 # Load environment variables from .env file
 load_dotenv()
@@ -42,13 +41,10 @@ def get_data_for_year(cid):
             df.columns = df.columns.str.strip()  # Strip spaces from column names
             df = df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)  # Strip spaces from object type columns
 
-            # Print column names for debugging
-            st.write("Columns in the dataset:", df.columns.tolist())
-
             # Ensure 'Mfr Name' is string type (only if it's not already)
             df['Mfr Name'] = df['Mfr Name'].astype(str)
 
-            # Check if required columns exist (excluding 'Curb Weight')
+            # Check if required columns exist
             required_columns = ['Mfr Name', 'Carline', 'Comb FE (Guide) - Conventional Fuel', 'Eng Displ', 'City CO2 Rounded Adjusted', 'Hwy CO2 Rounded Adjusted']
             missing_columns = [col for col in required_columns if col not in df.columns]
             
@@ -73,84 +69,50 @@ def get_data_for_year(cid):
             return None
     return None
 
-# Function to visualize the data
-def visualize_data(df):
-    st.subheader("Fuel Efficiency and Environmental Impact Analysis")
+# Function to visualize the selected columns
+def visualize_selected_columns(df, selected_columns):
+    st.subheader(f"Visualizing Selected Columns: {', '.join(selected_columns)}")
 
-    # Remove outliers in fuel efficiency
-    df_filtered = df[(df['Comb FE (Guide) - Conventional Fuel'] >= 20) & (df['Comb FE (Guide) - Conventional Fuel'] <= 60)]
+    # Ensure the columns are available in the dataframe
+    if all(col in df.columns for col in selected_columns):
+        # Ensure columns are numeric
+        if not all(pd.api.types.is_numeric_dtype(df[col]) for col in selected_columns):
+            st.error("All selected columns must be numeric to generate a visualization.")
+            return
 
-    # Top N carlines by fuel efficiency
-    top_n = 10  # You can adjust this number
-    Carline_avg_fe = df_filtered.groupby('Carline')['Comb FE (Guide) - Conventional Fuel'].mean().sort_values(ascending=False).head(top_n)
-    
-    if Carline_avg_fe.empty:
-        st.warning("No data available for the top models.")
-        return
+        # If only two columns are selected, generate a scatter plot
+        if len(selected_columns) == 2:
+            col1, col2 = selected_columns
+            st.write(f"### Scatter Plot of {col1} vs {col2}")
+            fig, ax = plt.subplots(figsize=(10, 6))
+            sns.scatterplot(x=df[col1], y=df[col2], ax=ax)
+            ax.set_title(f"{col1} vs {col2}")
+            ax.set_xlabel(col1)
+            ax.set_ylabel(col2)
+            st.pyplot(fig)
 
-    # Bar Chart: Top N Carlines by Average Fuel Efficiency
-    st.write(f"### Top {top_n} Carlines by Average Fuel Efficiency (MPG)")
-    fig, ax = plt.subplots(figsize=(10, 6))
-    Carline_avg_fe.plot(kind='bar', ax=ax, color='orange')
-    ax.set_title(f"Top {top_n} Carlines by Average Fuel Efficiency (MPG)")
-    ax.set_ylabel("Average MPG")
-    ax.set_xlabel("Carline")
-    st.pyplot(fig)
+        # If more than two columns are selected, create a bar chart for comparison
+        else:
+            st.write(f"### Bar Chart of {', '.join(selected_columns)}")
+            df_selected = df[selected_columns].mean().sort_values(ascending=False)
+            fig, ax = plt.subplots(figsize=(10, 6))
+            df_selected.plot(kind='bar', ax=ax, color='orange')
+            ax.set_title(f"Comparison of {', '.join(selected_columns)}")
+            ax.set_ylabel("Average Value")
+            ax.set_xlabel("Columns")
+            st.pyplot(fig)
 
-    # Add Summary for Bar Graph: Top Carlines by Fuel Efficiency
-    st.markdown("""
-    <div class="summary">
-        <h4>Top 10 Carlines by Average Fuel Efficiency (MPG)</h4>
-        <p>This chart displays the top 10 Toyota carlines based on their combined fuel efficiency. 
-        Higher fuel efficiency means lower fuel consumption, which can help you save money on fuel and reduce environmental impact.</p>
-        <p>The Toyota carlines with the highest fuel efficiency in this dataset are leading in terms of sustainability and cost-effectiveness.</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Scatter Plot: Fuel Efficiency vs Engine Displacement
-    if 'Eng Displ' in df.columns:
-        st.write("### Fuel Efficiency vs Engine Displacement")
-        fig, ax = plt.subplots(figsize=(10, 6))
-        sns.scatterplot(x=df_filtered['Eng Displ'], y=df_filtered['Comb FE (Guide) - Conventional Fuel'], ax=ax, color='blue')
-        ax.set_title("Fuel Efficiency vs Engine Displacement")
-        ax.set_xlabel("Engine Displacement (L)")
-        ax.set_ylabel("Fuel Efficiency (MPG)")
-        st.pyplot(fig)
-
-        # Add Summary for Scatter Plot: Fuel Efficiency vs Engine Displacement
+        # Add summaries based on selection
         st.markdown("""
         <div class="summary">
-            <h4>Fuel Efficiency vs Engine Displacement</h4>
-            <p>This scatter plot shows the relationship between engine displacement and fuel efficiency. Typically, larger engines consume more fuel, which reduces fuel efficiency. 
-            Smaller engines tend to have better fuel efficiency but may impact vehicle performance in certain conditions.</p>
-            <p>Choosing a Toyota with an efficient engine size can provide the perfect balance of performance and fuel savings.</p>
+            <h4>Selected Column Comparison</h4>
+            <p>This visualization allows you to compare the selected columns. 
+            Use the scatter plot to visualize the relationship between two columns and the bar chart to see how different columns perform on average.</p>
+            <p>Feel free to experiment with different column selections to uncover interesting insights about Toyota vehicles.</p>
         </div>
         """, unsafe_allow_html=True)
-
-    # CO2 Emissions by Carline: City and Highway CO2
-    if 'City CO2 Rounded Adjusted' in df.columns and 'Hwy CO2 Rounded Adjusted' in df.columns:
-        st.write("### CO2 Emissions (City vs Highway) by Carline")
-        df_co2 = df_filtered.groupby('Carline').agg({
-            'City CO2 Rounded Adjusted': 'mean',
-            'Hwy CO2 Rounded Adjusted': 'mean'
-        }).sort_values('City CO2 Rounded Adjusted', ascending=True).head(top_n)
-
-        fig, ax = plt.subplots(figsize=(10, 6))
-        df_co2.plot(kind='bar', ax=ax, color=['green', 'blue'])
-        ax.set_title(f"CO2 Emissions by Carline (Top {top_n})")
-        ax.set_ylabel("CO2 Emissions (g/mile)")
-        ax.set_xlabel("Carline")
-        st.pyplot(fig)
-
-        # Add Summary for CO2 Emissions Comparison
-        st.markdown("""
-        <div class="summary">
-            <h4>CO2 Emissions Comparison (City vs Highway)</h4>
-            <p>This bar chart compares the CO2 emissions for city and highway driving by carline. 
-            Lower CO2 emissions indicate a more environmentally friendly vehicle, which contributes to cleaner air quality and lower environmental impact.</p>
-            <p>Choosing a Toyota carline with lower emissions for both city and highway driving helps reduce your carbon footprint while providing better fuel economy.</p>
-        </div>
-        """, unsafe_allow_html=True)
+    else:
+        st.error(f"One or more of the selected columns are missing from the data: {', '.join(selected_columns)}")
 
 # Main function to interact with Streamlit interface
 def main():
@@ -214,7 +176,7 @@ def main():
     """, unsafe_allow_html=True)
 
     # User input for year
-    year = st.selectbox("Select the year for the data:", [2025,2024, 2023, 2022, 2021])
+    year = st.selectbox("Select the year for the data:", [2025, 2024, 2023, 2022, 2021])
     cids = {
         "2025": os.getenv("FE_2025"),
         "2024": os.getenv("FE_2024"),
@@ -228,7 +190,21 @@ def main():
     if cid:
         df = get_data_for_year(cid)
         if df is not None:
-            visualize_data(df)
+            # Allow users to select columns
+            available_columns = df.columns.tolist()
+            selected_columns = st.multiselect(
+                "Select the columns you want to compare:",
+                options=available_columns,
+                default=['Comb FE (Guide) - Conventional Fuel', 'Eng Displ']
+            )
+
+            # Visualize the selected columns
+            if selected_columns:
+                visualize_selected_columns(df, selected_columns)
+            else:
+                st.warning("Please select at least two columns to compare.")
+        else:
+            st.error("No data available for the selected year.")
     else:
         st.error("Data for the selected year is not available.")
 
