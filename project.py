@@ -65,7 +65,7 @@ def login():
 def post_login():
     print("Post login")
     with st.sidebar:
-        st.write(f"Signed in as {st.session_state.signin['email']}") # By this point, the user is guaranteed to be signed in.
+        st.markdown(f"**Signed in as {st.session_state.signin['email']}**") # By this point, the user is guaranteed to be signed in.
         if st.button("Logout"):
             st.session_state.auth.current_user = None
             st.session_state.pop('signin', None)
