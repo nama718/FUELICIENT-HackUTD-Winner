@@ -3,7 +3,7 @@
 
 import streamlit as st
 import pyrebase
-from main import *
+from lib.main import *
 
 def prepare_authentication():
     firebaseConfig = {
