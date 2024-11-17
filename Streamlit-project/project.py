@@ -48,10 +48,10 @@ def authenticate(auth, email, password):
 def login():
     print("About to log in")
     auth = prepare_authentication()
-    st.markdown("## Log in/create account:")
+    st.markdown("## Log into or create your account:")
     email = st.text_input("Email")
     password = st.text_input("Password", type="password") # try "example"
-    if st.button("Create account/log in"):
+    if st.button("Enter"):
         if "signin" not in st.session_state:
             print("About to authenticate")
             if authenticate(auth, email, password):
@@ -75,6 +75,7 @@ def post_login():
 #Main code begins here
 st.set_page_config(page_title="FUELICIENT", page_icon="FUELICIENT logo.jpg", layout="centered", initial_sidebar_state="auto", menu_items=None)
 st.title("FUELICIENT")
+st.markdown("""---""")
 
 if "signin" not in st.session_state:
     login()
