@@ -194,9 +194,13 @@ def main():
     response1 = db.child("users").child(sanitized_email).child("years").get().val()
     if response1:
         st.session_state.default_years = response1
+    else:
+        st.session_state.default_years = []
     response2 = db.child("users").child(sanitized_email).child("selected_columns").get().val()
     if response2:
         st.session_state.default_columns = response2
+    else:
+        st.session_state.default_columns = []
     # User input for year
     years = st.multiselect("Select the years for the data:", [2025, 2024, 2023, 2022, 2021], default=st.session_state.default_years)
     cids = {
