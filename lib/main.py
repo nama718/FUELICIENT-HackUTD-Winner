@@ -184,12 +184,12 @@ def main():
     users = db.child("users").get()
     email = st.session_state.email
     if email not in users.each():
-        db.child("users").add(email)
-        db.child("users").child(email).add("years")
-        db.child("users").child(email).add("selected_columns")
+        db.ref("users").add(email)
+        db.ref(f"users/{email}").add("years")
+        db.ref(f"users/{email}").add("selected_columns")
     
-    default_years = list(db.child("users").child(email).get("years").get().val().keys())
-    default_columns = list(db.child("users").child(email).get("selected_columns").get().val().keys())
+    default_years = list(db.ref(f"users/{email}/years").get().val().keys())
+    default_columns = list(db.ref(f"users/{email}").get("selected_columns").get().val().keys())
     
     # User input for year
     years = st.multiselect("Select the years for the data:", [2025, 2024, 2023, 2022, 2021], default=default_years)
