@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from io import BytesIO
 from dotenv import load_dotenv
+import numpy as np
 
 # Load environment variables from .env file
 load_dotenv()
@@ -244,6 +245,151 @@ def main():
     else:
         if len(cids_chosen) > 0:
             st.error("Data for the selected year is not available.")
+    
+     # User input for year
+    year = st.selectbox("Select the year for the data:", [2025, 2024, 2023, 2022, 2021])
+    cids = {
+        "2025": os.getenv("FE_2025"),
+        "2024": os.getenv("FE_2024"),
+        "2023": os.getenv("FE_2023"),
+        "2022": os.getenv("FE_2022"),
+        "2021": os.getenv("FE_2021")
+    }
+
+    # Fetch and visualize data
+    cid = cids.get(str(year))
+    if not cid:
+        st.error("No data available for the selected year.")
+        return
+
+    df = get_data_for_year(cid)
+    if df is not None:
+        visualize_data(df)
+
+# Added in
+# Function to visualize the data
+def visualize_data(df):
+    st.subheader("Fuel Efficiency and Environmental Impact Analysis")
+
+    # Remove outliers in fuel efficiency
+    df_filtered = df[(df['Comb FE (Guide) - Conventional Fuel'] >= 20) & (df['Comb FE (Guide) - Conventional Fuel'] <= 60)]
+
+    # Top N carlines by fuel efficiency
+    top_n = 10
+    Carline_avg_fe = df_filtered.groupby('Carline')['Comb FE (Guide) - Conventional Fuel'].mean().sort_values(ascending=False).head(top_n)
+    
+    if Carline_avg_fe.empty:
+        st.warning("No data available for the top models.")
+        return
+
+    # Bar Chart: Top N Carlines by Average Fuel Efficiency
+    st.write(f"### Top {top_n} Carlines by Average Fuel Efficiency (MPG)")
+    fig, ax = plt.subplots(figsize=(10, 6))
+    Carline_avg_fe.plot(kind='bar', ax=ax, color='orange')
+    ax.set_title(f"Top {top_n} Carlines by Average Fuel Efficiency (MPG)")
+    ax.set_ylabel("Average MPG")
+    ax.set_xlabel("Carline")
+    st.pyplot(fig)
+    st.write(
+        "This bar chart highlights the top 10 Toyota carlines based on their average fuel efficiency. "
+        "It helps identify the carlines that perform best in terms of fuel economy, which is crucial for cost-saving "
+        "and environmental considerations. Higher fuel efficiency means less fuel consumption and lower carbon emissions."
+    )
+
+    # Advanced Filtering
+    st.sidebar.header("Advanced Filters")
+    selected_carline = st.sidebar.multiselect("Select Carlines:", options=df['Carline'].unique())
+    min_fe, max_fe = st.sidebar.slider(
+        "Select Fuel Efficiency Range (MPG):", 
+        min_value=int(df_filtered['Comb FE (Guide) - Conventional Fuel'].min()), 
+        max_value=int(df_filtered['Comb FE (Guide) - Conventional Fuel'].max()), 
+        value=(20, 60)
+    )
+    
+    df_filtered = df_filtered[ 
+        (df_filtered['Comb FE (Guide) - Conventional Fuel'] >= min_fe) & 
+        (df_filtered['Comb FE (Guide) - Conventional Fuel'] <= max_fe)
+    ]
+    if selected_carline:
+        df_filtered = df_filtered[df_filtered['Carline'].isin(selected_carline)]
+
+    # Summary Statistics
+    st.write("### Summary Statistics")
+    st.write(f"**Average Fuel Efficiency:** {df_filtered['Comb FE (Guide) - Conventional Fuel'].mean():.2f} MPG")
+    st.write(f"**Median Fuel Efficiency:** {df_filtered['Comb FE (Guide) - Conventional Fuel'].median():.2f} MPG")
+    st.write(f"**Fuel Efficiency Standard Deviation:** {df_filtered['Comb FE (Guide) - Conventional Fuel'].std():.2f} MPG")
+
+    # Scatter Plot: Fuel Efficiency vs Engine Displacement
+    if 'Eng Displ' in df.columns:
+        st.write("### Fuel Efficiency vs Engine Displacement")
+        fig, ax = plt.subplots(figsize=(10, 6))
+        sns.scatterplot(x=df_filtered['Eng Displ'], y=df_filtered['Comb FE (Guide) - Conventional Fuel'], ax=ax, color='blue')
+        ax.set_title("Fuel Efficiency vs Engine Displacement")
+        ax.set_xlabel("Engine Displacement (L)")
+        ax.set_ylabel("Fuel Efficiency (MPG)")
+        st.pyplot(fig)
+        st.write(
+            "This scatter plot demonstrates how engine displacement (in liters) influences fuel efficiency. "
+            "In general, larger engines tend to have lower fuel efficiency, but this plot allows for a more detailed "
+            "comparison of different carlines. Understanding this relationship helps buyers make informed decisions about fuel economy."
+        )
+
+    # CO2 Emissions by Carline: City and Highway CO2
+    if 'City CO2 Rounded Adjusted' in df.columns and 'Hwy CO2 Rounded Adjusted' in df.columns:
+        st.write("### CO2 Emissions (City vs Highway) by Carline")
+
+        # Dropdown for selecting specific carlines
+        available_carlines = df['Carline'].unique()
+        selected_carlines = st.multiselect("Select carlines to compare:", available_carlines, default=available_carlines[:5])
+
+        if selected_carlines:
+            # Filter data for selected carlines
+            df_selected = df[df['Carline'].isin(selected_carlines)]
+
+            df_co2 = df_selected.groupby('Carline').agg({
+                'City CO2 Rounded Adjusted': 'mean',
+                'Hwy CO2 Rounded Adjusted': 'mean'
+            }).sort_values('City CO2 Rounded Adjusted', ascending=True)
+
+            fig, ax = plt.subplots(figsize=(10, 6))
+            df_co2.plot(kind='bar', ax=ax, color=['green', 'blue'])
+            ax.set_title(f"CO2 Emissions by Carline (City vs Highway)")
+            ax.set_ylabel("CO2 Emissions (g/mile)")
+            ax.set_xlabel("Carline")
+            st.pyplot(fig)
+            st.write(
+                "This bar chart compares the average CO2 emissions for selected Toyota carlines in both city and highway driving. "
+                "It illustrates how different carlines impact the environment, with city driving typically generating more emissions "
+                "due to lower efficiency in stop-and-go traffic. By comparing emissions across carlines, users can identify the more eco-friendly options."
+            )
+
+    # User Column Selection for Custom Chart
+    st.sidebar.header("Custom Chart Selection")
+    available_columns = df.columns.tolist()
+
+    # Ensure required columns for plotting are available
+    available_columns = [col for col in available_columns if col != 'Mfr Name']
+
+    x_column = st.sidebar.selectbox("Select the X-axis column for the plot:", available_columns)
+    y_column = st.sidebar.selectbox("Select the Y-axis column for the plot:", available_columns)
+
+    if x_column and y_column:
+        st.write(f"### {x_column} vs {y_column}")
+        fig, ax = plt.subplots(figsize=(10, 6))
+        sns.scatterplot(x=df_filtered[x_column], y=df_filtered[y_column], ax=ax, color='purple')
+        ax.set_title(f"{x_column} vs {y_column}")
+        ax.set_xlabel(x_column)
+        ax.set_ylabel(y_column)
+        st.pyplot(fig)
+
+    # Data Download Option
+    st.sidebar.download_button(
+        "Download Filtered Data as CSV",
+        df_filtered.to_csv(index=False),
+        "filtered_toyota_data.csv",
+        "text/csv"
+    )
+
 
 # Run the Streamlit app
 if __name__ == "__main__":
