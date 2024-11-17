@@ -16,7 +16,6 @@ def get_data_from_ipfs(cid):
     url = f"https://gateway.pinata.cloud/ipfs/{cid}"
     try:
         response = requests.get(url)
-
         if response.status_code == 200:
             # Return the content as bytes to read it into pandas
             return BytesIO(response.content)
@@ -31,23 +30,18 @@ def get_data_from_ipfs(cid):
 def get_data_for_year(cid):
     """Fetch the data for a given year and filter for Toyota cars based on 'Mfr Name'."""
     data = get_data_from_ipfs(cid)
-
+    
     if data:
         try:
-            # Read the dataset into pandas DataFrame
             df = pd.read_excel(data)
+            df.columns = df.columns.str.strip()  # Clean up column names
+            df = df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)  # Clean up object columns
+            
+            df['Mfr Name'] = df['Mfr Name'].astype(str)  # Ensure 'Mfr Name' is string
 
-            # Clean up column names and data
-            df.columns = df.columns.str.strip()  # Strip spaces from column names
-            df = df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)  # Strip spaces from object type columns
-
-            # Ensure 'Mfr Name' is string type (only if it's not already)
-            df['Mfr Name'] = df['Mfr Name'].astype(str)
-
-            # Check if required columns exist
             required_columns = ['Mfr Name', 'Carline', 'Comb FE (Guide) - Conventional Fuel', 'Eng Displ', 'City CO2 Rounded Adjusted', 'Hwy CO2 Rounded Adjusted']
             missing_columns = [col for col in required_columns if col not in df.columns]
-            
+
             if missing_columns:
                 st.error(f"Error: Missing the following required columns: {', '.join(missing_columns)}")
                 return None
@@ -177,6 +171,8 @@ def main():
 
     # User input for year
     year = st.selectbox("Select the year for the data:", [2025, 2024, 2023, 2022, 2021])
+    
+    # CIDs for different years (use environment variables for secure storage)
     cids = {
         "2025": os.getenv("FE_2025"),
         "2024": os.getenv("FE_2024"),
