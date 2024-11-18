@@ -2,7 +2,7 @@
 
 # Project FUELICIENT
 
-### Authors: Isaac Philo, Aman Balam, Adrian Alvarez, Sriram Lakamsani
+### Authors: Aman Balam, Isaac Philo, Adrian Alvarez, Sriram Lakamsani
 
 
 
